@@ -9,7 +9,7 @@ import Link from "next/link";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { ownerLogin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -35,18 +35,18 @@ export default function RegisterPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const res = await authApi.ownerRegister({
+      await authApi.ownerRegister({
         phone: form.phone,
         password: form.password,
         name: form.name,
         business_name: form.business_name,
       });
-      await login(res.data.access, res.data.refresh);
+      const { error } = await ownerLogin(form.phone, form.password);
+      if (error) throw new Error(error);
       toast.success("Account created! Welcome to TurfBook.");
       router.push("/dashboard");
-    } catch (err: unknown) {
-      const apiErr = err as { response?: { data?: { error?: { message?: string } } } };
-      toast.error(apiErr.response?.data?.error?.message || "Registration failed");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || err.message || "Registration failed");
     } finally {
       setLoading(false);
     }

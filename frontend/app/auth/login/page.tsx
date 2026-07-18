@@ -13,7 +13,7 @@ type OtpStep = "phone" | "code";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, requestOTP, ownerLogin } = useAuth();
   const [mode, setMode] = useState<Mode>("otp");
   const [otpStep, setOtpStep] = useState<OtpStep>("phone");
   const [loading, setLoading] = useState(false);
@@ -27,12 +27,12 @@ export default function LoginPage() {
     if (!phone) { toast.error("Enter your phone number"); return; }
     setLoading(true);
     try {
-      await authApi.requestOTP(phone);
+      const { error } = await requestOTP(phone);
+      if (error) throw new Error(error);
       toast.success("OTP sent! Check your phone.");
       setOtpStep("code");
-    } catch (err: unknown) {
-      const apiErr = err as { response?: { data?: { error?: { message?: string } } } };
-      toast.error(apiErr.response?.data?.error?.message || "Failed to send OTP");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
@@ -42,13 +42,12 @@ export default function LoginPage() {
     if (!otpCode) { toast.error("Enter the OTP code"); return; }
     setLoading(true);
     try {
-      const res = await authApi.verifyOTP(phone, otpCode);
-      await login(res.data.tokens.access, res.data.tokens.refresh);
+      const { error } = await login(phone, otpCode);
+      if (error) throw new Error(error);
       toast.success("Welcome back!");
       router.push("/");
-    } catch (err: unknown) {
-      const apiErr = err as { response?: { data?: { error?: { message?: string } } } };
-      toast.error(apiErr.response?.data?.error?.message || "Invalid OTP");
+    } catch (err: any) {
+      toast.error(err.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
@@ -58,13 +57,12 @@ export default function LoginPage() {
     if (!ownerPhone || !password) { toast.error("Fill in all fields"); return; }
     setLoading(true);
     try {
-      const res = await authApi.ownerLogin(ownerPhone, password);
-      await login(res.data.access, res.data.refresh);
+      const { error } = await ownerLogin(ownerPhone, password);
+      if (error) throw new Error(error);
       toast.success("Welcome back, owner!");
       router.push("/dashboard");
-    } catch (err: unknown) {
-      const apiErr = err as { response?: { data?: { error?: { message?: string } } } };
-      toast.error(apiErr.response?.data?.error?.message || "Invalid credentials");
+    } catch (err: any) {
+      toast.error(err.message || "Invalid credentials");
     } finally {
       setLoading(false);
     }
