@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         // Fetch custom user profile from our Next.js API route
-        fetch('/api/auth/me')
+        fetch('/api/v1/auth/me')
           .then((res) => (res.ok ? res.json() : null))
           .then((data) => setUser(data))
           .catch(() => setUser(null))
@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
           setIsLoading(true);
-          const res = await fetch('/api/auth/me');
+          const res = await fetch('/api/v1/auth/me');
           if (res.ok) {
             setUser(await res.json());
           }
