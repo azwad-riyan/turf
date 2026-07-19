@@ -27,10 +27,10 @@ export const authApi = {
   verifyOTP: (phone: string, code: string, name?: string) =>
     apiClient.post("/auth/otp/verify/", { phone, code, name }),
 
-  ownerLogin: (phone: string, password: string) =>
-    apiClient.post("/auth/owner/login/", { phone, password }),
+  ownerLogin: (email: string, password: string) =>
+    apiClient.post("/auth/owner/login/", { email, password }),
 
-  ownerRegister: (data: { phone: string; password: string; name: string; business_name: string }) =>
+  ownerRegister: (data: { email: string; phone?: string; password: string; name: string; business_name: string }) =>
     apiClient.post("/auth/owner/register/", data),
 
   getMe: () => apiClient.get("/auth/me"),
