@@ -5,23 +5,23 @@ import prisma from '@/lib/prisma';
 // Use service role key to create user and bypass auth restrictions
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // We need to add this to .env.local
+  process.env.SUPABASE_SERVICE_ROLE_KEY! 
 );
 
 export async function POST(request: Request) {
   try {
-    const { email, password, name, business_name, phone } = await request.json();
+    const { email, password } = await request.json();
 
-    if (!email || !password || !name || !business_name) {
+    if (!email || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // 1. Create user in Supabase Auth
+    // 1. Create user in Supabase Auth, bypassing email confirmation for testing
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true, // Auto-confirm email for password login
-      user_metadata: { name, role: 'OWNER' }
+      user_metadata: { role: 'PLAYER' }
     });
 
     if (authError) {
@@ -34,14 +34,12 @@ export async function POST(request: Request) {
 
     const user = authData.user;
 
-    // 2. Create user and owner profile in Prisma
+    // 2. Create user in Prisma
     const dbUser = await prisma.user.create({
       data: {
         id: user.id,
         email: user.email!,
-        phone: phone || null,
-        role: 'OWNER',
-        ownerProfile: { create: { businessName: business_name } }
+        role: 'PLAYER'
       }
     });
 

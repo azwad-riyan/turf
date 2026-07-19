@@ -2,62 +2,57 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, KeyRound, ArrowRight, Building2, Lock } from "lucide-react";
+import { Mail, KeyRound, ArrowRight, Building2, Lock } from "lucide-react";
 import { authApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
-type Mode = "otp" | "owner";
-type OtpStep = "phone" | "code";
+type Mode = "player" | "owner";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, requestOTP, ownerLogin } = useAuth();
-  const [mode, setMode] = useState<Mode>("otp");
-  const [otpStep, setOtpStep] = useState<OtpStep>("phone");
+  const { login, ownerLogin } = useAuth();
+  const [mode, setMode] = useState<Mode>("player");
+  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [phone, setPhone] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [ownerPhone, setOwnerPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleOtpRequest = async () => {
-    if (!phone) { toast.error("Enter your phone number"); return; }
+  const handlePlayerAuth = async () => {
+    if (!email || !password) { toast.error("Fill in all fields"); return; }
     setLoading(true);
     try {
-      const { error } = await requestOTP(phone);
-      if (error) throw new Error(error);
-      toast.success("OTP sent! Check your phone.");
-      setOtpStep("code");
+      if (isSignUp) {
+        const res = await fetch("/api/v1/auth/player/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to create account");
+        
+        toast.success("Account created! You can now log in.");
+        setIsSignUp(false);
+      } else {
+        const { error } = await login(email, password);
+        if (error) throw new Error(error);
+        toast.success("Welcome back!");
+        router.push("/");
+      }
     } catch (err: any) {
-      toast.error(err.message || "Failed to send OTP");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpVerify = async () => {
-    if (!otpCode) { toast.error("Enter the OTP code"); return; }
-    setLoading(true);
-    try {
-      const { error } = await login(phone, otpCode);
-      if (error) throw new Error(error);
-      toast.success("Welcome back!");
-      router.push("/");
-    } catch (err: any) {
-      toast.error(err.message || "Invalid OTP");
+      toast.error(err.message || "Authentication failed");
     } finally {
       setLoading(false);
     }
   };
 
   const handleOwnerLogin = async () => {
-    if (!ownerPhone || !password) { toast.error("Fill in all fields"); return; }
+    if (!email || !password) { toast.error("Fill in all fields"); return; }
     setLoading(true);
     try {
-      const { error } = await ownerLogin(ownerPhone, password);
+      const { error } = await ownerLogin(email, password);
       if (error) throw new Error(error);
       toast.success("Welcome back, owner!");
       router.push("/dashboard");
@@ -83,10 +78,15 @@ export default function LoginPage() {
 
         {/* Mode tabs */}
         <div className="flex gap-1 p-1 bg-secondary-800 rounded-xl mb-6">
-          {([["otp", "Player Login"], ["owner", "Owner Login"]] as [Mode, string][]).map(([m, label]) => (
+          {([["player", "Player Login"], ["owner", "Owner Login"]] as [Mode, string][]).map(([m, label]) => (
             <button
               key={m}
-              onClick={() => setMode(m)}
+              onClick={() => {
+                setMode(m);
+                setIsSignUp(false); // Reset sign up state when switching tabs
+                setEmail("");
+                setPassword("");
+              }}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                 mode === m ? "bg-primary-600 text-white" : "text-secondary-400 hover:text-white"
               }`}
@@ -97,42 +97,32 @@ export default function LoginPage() {
         </div>
 
         <AnimatePresence mode="wait">
-          {mode === "otp" ? (
-            <motion.div key="otp" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="card p-6 space-y-4">
+          {mode === "player" ? (
+            <motion.div key="player" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="card p-6 space-y-4">
               <div>
-                <h1 className="font-display text-xl font-bold text-white">Sign in as Player</h1>
-                <p className="text-secondary-400 text-sm mt-1">We&apos;ll send an OTP to your phone number.</p>
+                <h1 className="font-display text-xl font-bold text-white">{isSignUp ? "Sign Up as Player" : "Sign in as Player"}</h1>
+                <p className="text-secondary-400 text-sm mt-1">{isSignUp ? "Create an account to book turfs." : "Welcome back!"}</p>
               </div>
 
-              {otpStep === "phone" && (
-                <>
-                  <div>
-                    <label className="label"><Phone className="inline w-3.5 h-3.5 mr-1" />Phone Number</label>
-                    <input className="input" type="tel" placeholder="01XXXXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleOtpRequest()} />
-                  </div>
-                  <button onClick={handleOtpRequest} disabled={loading} className="btn-primary w-full">
-                    {loading ? "Sending..." : <>Send OTP <ArrowRight className="w-4 h-4" /></>}
-                  </button>
-                </>
-              )}
-
-              {otpStep === "code" && (
-                <>
-                  <div>
-                    <label className="label"><KeyRound className="inline w-3.5 h-3.5 mr-1" />Enter OTP</label>
-                    <input className="input text-center text-2xl tracking-widest" type="text" maxLength={6} placeholder="------" value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && handleOtpVerify()} />
-                    <p className="text-xs text-secondary-500 mt-1.5">Sent to {phone} <button onClick={() => setOtpStep("phone")} className="text-primary-400 hover:underline ml-1">Change</button></p>
-                  </div>
-                  <button onClick={handleOtpVerify} disabled={loading} className="btn-primary w-full">
-                    {loading ? "Verifying..." : "Verify & Sign In ✓"}
-                  </button>
-                  <button onClick={handleOtpRequest} disabled={loading} className="btn-ghost w-full text-sm">
-                    Resend OTP
-                  </button>
-                </>
-              )}
-
-              <p className="text-xs text-secondary-500 text-center">No account needed — we create one automatically.</p>
+              <div>
+                <label className="label"><Mail className="inline w-3.5 h-3.5 mr-1" />Email</label>
+                <input className="input" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              </div>
+              <div>
+                <label className="label"><Lock className="inline w-3.5 h-3.5 mr-1" />Password</label>
+                <input className="input" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handlePlayerAuth()} />
+              </div>
+              
+              <button onClick={handlePlayerAuth} disabled={loading} className="btn-primary w-full">
+                {loading ? "Processing..." : isSignUp ? "Create Account" : "Sign In"}
+              </button>
+              
+              <p className="text-xs text-center text-secondary-500">
+                {isSignUp ? "Already have an account?" : "No account yet?"}{" "}
+                <button onClick={() => setIsSignUp(!isSignUp)} className="text-primary-400 hover:underline">
+                  {isSignUp ? "Sign In" : "Sign Up"}
+                </button>
+              </p>
             </motion.div>
           ) : (
             <motion.div key="owner" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="card p-6 space-y-4">
@@ -141,8 +131,8 @@ export default function LoginPage() {
                 <p className="text-secondary-400 text-sm mt-1">Access your turf management dashboard.</p>
               </div>
               <div>
-                <label className="label"><Building2 className="inline w-3.5 h-3.5 mr-1" />Phone Number</label>
-                <input className="input" type="tel" placeholder="01XXXXXXXXX" value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} />
+                <label className="label"><Mail className="inline w-3.5 h-3.5 mr-1" />Email</label>
+                <input className="input" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div>
                 <label className="label"><Lock className="inline w-3.5 h-3.5 mr-1" />Password</label>

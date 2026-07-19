@@ -18,12 +18,12 @@ export async function GET() {
     }
   });
 
-  // If user signed in via OTP but doesn't exist in Prisma yet, create them
-  if (!dbUser && user.phone) {
+  // If user signed in but doesn't exist in Prisma yet, create them
+  if (!dbUser && user.email) {
     dbUser = await prisma.user.create({
       data: {
         id: user.id,
-        phone: user.phone,
+        email: user.email,
         role: 'PLAYER',
       },
       include: {

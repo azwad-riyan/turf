@@ -3,3 +3,7 @@ node_modules
 .env
 
 /lib/generated/prisma
+. n e x t  
+ 
+# Ignore admin credentials
+docs/admin-credentials.md

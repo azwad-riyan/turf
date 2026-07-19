@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  engineType = "library"
 }
 
 datasource db {
@@ -79,6 +80,7 @@ enum PayoutStatus {
 enum NotificationChannel {
   SMS
   WHATSAPP
+  EMAIL
 }
 
 enum NotificationStatus {
@@ -89,7 +91,8 @@ enum NotificationStatus {
 
 model User {
   id        String   @id @db.Uuid
-  phone     String   @unique
+  email     String   @unique
+  phone     String?
   name      String?
   role      Role     @default(PLAYER)
   isActive  Boolean  @default(true)
@@ -189,6 +192,7 @@ model Booking {
   playerId         String?        @db.Uuid
   player           User?          @relation("PlayerBookings", fields: [playerId], references: [id], onDelete: SetNull)
   playerName       String?
+  playerEmail      String?
   playerPhone      String?
   playerCount      Int            @default(1)
   
@@ -280,7 +284,8 @@ model NotificationLog {
   id           String              @id @default(uuid()) @db.Uuid
   bookingId    String?             @db.Uuid
   booking      Booking?            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  phone        String
+  email        String?
+  phone        String?
   channel      NotificationChannel
   messageType  String              @default("generic")
   status       NotificationStatus  @default(STUB)

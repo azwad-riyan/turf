@@ -7,9 +7,8 @@ interface AuthContextType {
   user: PrismaUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (phone: string, otp: string) => Promise<{ error: string | null }>;
-  ownerLogin: (phone: string, password: string) => Promise<{ error: string | null }>;
-  requestOTP: (phone: string) => Promise<{ error: string | null }>;
+  login: (email: string, password: string) => Promise<{ error: string | null }>;
+  ownerLogin: (email: string, password: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
 }
 
@@ -19,7 +18,6 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   login: async () => ({ error: null }),
   ownerLogin: async () => ({ error: null }),
-  requestOTP: async () => ({ error: null }),
   logout: async () => {},
 });
 
@@ -68,27 +66,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [supabase]);
 
-  const login = async (phone: string, otp: string) => {
-    // Supabase expects phone number with country code, e.g. +880...
-    const { error } = await supabase.auth.verifyOtp({
-      phone,
-      token: otp,
-      type: 'sms',
+  const login = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
     
     return { error: error?.message || null };
   };
 
-  const requestOTP = async (phone: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      phone,
-    });
-    return { error: error?.message || null };
-  };
-
-  const ownerLogin = async (phone: string, password: string) => {
+  const ownerLogin = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
-      phone,
+      email,
       password,
     });
     return { error: error?.message || null };
@@ -100,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, ownerLogin, requestOTP, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, ownerLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );

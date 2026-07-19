@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, User, Phone, Lock, ArrowRight } from "lucide-react";
+import { Building2, User, Phone, Lock, ArrowRight, Mail } from "lucide-react";
 import { authApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import toast from "react-hot-toast";
@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
+    email: "",
     phone: "",
     business_name: "",
     password: "",
@@ -23,6 +24,7 @@ export default function RegisterPage() {
   const validate = () => {
     const errs: Partial<typeof form & { general: string }> = {};
     if (!form.name) errs.name = "Name is required";
+    if (!form.email) errs.email = "Email is required";
     if (!form.phone) errs.phone = "Phone is required";
     if (!form.business_name) errs.business_name = "Business name is required";
     if (form.password.length < 8) errs.password = "Password must be at least 8 characters";
@@ -36,12 +38,13 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await authApi.ownerRegister({
+        email: form.email,
         phone: form.phone,
         password: form.password,
         name: form.name,
         business_name: form.business_name,
       });
-      const { error } = await ownerLogin(form.phone, form.password);
+      const { error } = await ownerLogin(form.email, form.password);
       if (error) throw new Error(error);
       toast.success("Account created! Welcome to TurfBook.");
       router.push("/dashboard");
@@ -74,6 +77,12 @@ export default function RegisterPage() {
             <label className="label"><User className="inline w-3.5 h-3.5 mr-1" />Your Name</label>
             <input className={`input ${errors.name ? "border-red-500" : ""}`} placeholder="Your full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
+          </div>
+
+          <div>
+            <label className="label"><Mail className="inline w-3.5 h-3.5 mr-1" />Email Address</label>
+            <input className={`input ${errors.email ? "border-red-500" : ""}`} type="email" placeholder="you@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
           </div>
 
           <div>
