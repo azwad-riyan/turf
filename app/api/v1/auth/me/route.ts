@@ -4,34 +4,39 @@ import prisma from '@/lib/prisma';
 import { serializeUser } from '@/lib/serializers';
 
 export async function GET() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (error || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Find user in Prisma database
-  let dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    include: {
-      ownerProfile: true
+    if (error || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-  });
 
-  // If user signed in but doesn't exist in Prisma yet, create them
-  if (!dbUser && user.email) {
-    dbUser = await prisma.user.create({
-      data: {
-        id: user.id,
-        email: user.email,
-        role: 'PLAYER',
-      },
+    // Find user in Prisma database
+    let dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
       include: {
         ownerProfile: true
       }
     });
-  }
 
-  return NextResponse.json(serializeUser(dbUser));
+    // If user signed in but doesn't exist in Prisma yet, create them
+    if (!dbUser && user.email) {
+      dbUser = await prisma.user.create({
+        data: {
+          id: user.id,
+          email: user.email,
+          role: 'PLAYER',
+        },
+        include: {
+          ownerProfile: true
+        }
+      });
+    }
+
+    return NextResponse.json(serializeUser(dbUser));
+  } catch (err: any) {
+    console.error('Auth me error:', err);
+    return NextResponse.json({ error: err.message || 'Internal server error', stack: err.stack }, { status: 500 });
+  }
 }
