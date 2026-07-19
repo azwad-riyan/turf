@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
+import { serializeTurf } from '@/lib/serializers';
 
 export async function GET(
   request: Request,
@@ -25,7 +26,7 @@ export async function GET(
       return NextResponse.json({ error: 'Turf not found' }, { status: 404 });
     }
 
-    return NextResponse.json(turf);
+    return NextResponse.json(serializeTurf(turf));
   } catch (error: any) {
     console.error('Error fetching turf:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

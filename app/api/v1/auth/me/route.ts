@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import prisma from '@/lib/prisma';
+import { serializeUser } from '@/lib/serializers';
 
 export async function GET() {
   const supabase = await createClient();
@@ -32,5 +33,5 @@ export async function GET() {
     });
   }
 
-  return NextResponse.json(dbUser);
+  return NextResponse.json(serializeUser(dbUser));
 }
